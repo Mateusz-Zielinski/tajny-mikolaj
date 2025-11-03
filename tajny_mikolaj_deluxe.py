@@ -2,6 +2,7 @@ import streamlit as st
 import random
 import time
 import urllib.parse
+import pandas as pd
 
 st.set_page_config(page_title="🎅 Tajny Mikołaj Deluxe", page_icon="🎁", layout="centered")
 
@@ -145,12 +146,22 @@ if st.session_state.assignments:
     st.divider()
     st.subheader("🔗 Indywidualne linki dla uczestników")
 
-    base_url = st.experimental_get_query_params()
-    app_url = st.experimental_get_url()
-    # Usuń parametry, jeśli istnieją
-    app_url = app_url.split('?')[0]
+    # 🔧 Wprowadź tutaj adres Twojej aplikacji na Streamlit Cloud
+    app_url = "https://twoja-nazwa-aplikacji.streamlit.app"  # ← ZMIEŃ TUTAJ
 
+    data = []
     for name in st.session_state.assignments.keys():
         encoded = urllib.parse.quote(name)
         link = f"{app_url}?user={encoded}"
         st.markdown(f"🎅 **{name}** → [Otwórz swój prezent]({link})")
+        data.append({"Imię": name, "Link": link})
+
+    # 📤 Przyciski do pobrania CSV
+    df = pd.DataFrame(data)
+    csv = df.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="📥 Pobierz wszystkie linki do CSV",
+        data=csv,
+        file_name="tajny_mikolaj_linki.csv",
+        mime="text/csv"
+    )
