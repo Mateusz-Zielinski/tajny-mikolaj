@@ -1,6 +1,8 @@
 import streamlit as st
 import random
 import time
+import json
+import os
 
 # ------------------------------
 # 🎅 Konfiguracja aplikacji
@@ -9,6 +11,7 @@ st.set_page_config(page_title="Tajny Mikołaj 🎁", page_icon="🎅", layout="c
 
 PASSWORD = "Mikolaj2025"
 IMIONA = ["Sonia", "Mateusz", "Marzena", "Edek", "Martyna", "Jacek"]
+ASSIGN_FILE = "assignments.json"
 
 # Niedozwolone pary (obustronnie)
 BANNED = {
@@ -21,15 +24,20 @@ BANNED = {
 }
 
 # ------------------------------
-# 💾 Stan aplikacji
+# 💾 Wczytaj istniejące losowanie
 # ------------------------------
 if "assignments" not in st.session_state:
-    st.session_state.assignments = {}
+    if os.path.exists(ASSIGN_FILE):
+        with open(ASSIGN_FILE, "r", encoding="utf-8") as f:
+            st.session_state.assignments = json.load(f)
+    else:
+        st.session_state.assignments = {}
+
 if "admin_logged" not in st.session_state:
     st.session_state.admin_logged = False
 
 # ------------------------------
-# 🎨 CSS i animacje
+# 🎨 Styl świąteczny
 # ------------------------------
 st.markdown("""
     <style>
@@ -37,25 +45,6 @@ st.markdown("""
         background: linear-gradient(to bottom, #003366 0%, #001122 100%);
         color: white;
         text-align: center;
-    }
-    .snowflake {
-        position: fixed;
-        top: 0;
-        color: white;
-        font-size: 24px;
-        animation: fall 10s linear infinite;
-    }
-    @keyframes fall {
-        0% { transform: translateY(-10%); opacity: 1; }
-        100% { transform: translateY(110vh); opacity: 0; }
-    }
-    .house {
-        position: absolute;
-        bottom: 0;
-        width: 100%;
-        text-align: center;
-        color: #ffd700;
-        font-size: 12px;
     }
     .present {
         background-color: #b30000;
@@ -74,7 +63,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ------------------------------
-# 🎅 Funkcja losująca
+# 🎅 Losowanie par
 # ------------------------------
 def wylosuj_pary():
     available = IMIONA.copy()
@@ -84,7 +73,7 @@ def wylosuj_pary():
     for giver in available:
         possible = [p for p in recipients if p != giver and p not in BANNED.get(giver, [])]
         if not possible:
-            return None  # wylosowanie się nie powiodło, spróbuj ponownie
+            return None
         chosen = random.choice(possible)
         assignments[giver] = chosen
         recipients.remove(chosen)
@@ -108,7 +97,7 @@ def show_user_view(user):
     st.markdown(f"### Witaj, **{user}**! 🎅")
     if st.button("🎁 Otwórz prezent!"):
         result = st.session_state.assignments[user]
-        st.balloons()
+        st.snow()
         st.markdown(f"## 🎄 Wesołych Świąt 🎅! Jesteś Tajnym Mikołajem dla **{result}** 🎁")
         time.sleep(10)
         st.rerun()
@@ -129,22 +118,26 @@ def show_admin_panel():
                 st.error("❌ Niepoprawne hasło.")
         return
 
-    # Po zalogowaniu
     st.success("✅ Zalogowano jako organizator.")
+
     if st.button("🎲 Wylosuj pary"):
         pairs = None
-        for _ in range(10):  # kilka prób, by uniknąć kolizji
+        for _ in range(10):
             pairs = wylosuj_pary()
             if pairs:
                 break
         if pairs:
             st.session_state.assignments = pairs
-            st.success("✅ Pomyślnie wylosowano pary!")
+            with open(ASSIGN_FILE, "w", encoding="utf-8") as f:
+                json.dump(pairs, f, ensure_ascii=False, indent=2)
+            st.success("✅ Pomyślnie wylosowano pary! Zapisano do assignments.json")
         else:
             st.error("❌ Nie udało się wylosować poprawnych par. Spróbuj ponownie.")
 
     if st.button("❌ Wyczyść losowanie"):
         st.session_state.assignments = {}
+        if os.path.exists(ASSIGN_FILE):
+            os.remove(ASSIGN_FILE)
         st.warning("Wszystkie losowania zostały wyczyszczone.")
         st.rerun()
 
