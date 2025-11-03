@@ -154,12 +154,25 @@ else:
             st.success("🎁 Losowanie zakończone! Dane zapisane.")
             st.balloons()
 
-# -------------------- Linki --------------------
+# -------------------- Podgląd wyników --------------------
 if assignments:
+    st.divider()
+    st.subheader("📜 Podgląd wylosowanych par (tylko dla organizatora)")
+    df = pd.DataFrame(assignments.items(), columns=["Osoba", "Wylosował(a)"])
+    st.dataframe(df, use_container_width=True)
+
+    st.download_button(
+        label="📥 Pobierz pary jako CSV",
+        data=df.to_csv(index=False).encode('utf-8'),
+        file_name="tajny_mikolaj_pary.csv",
+        mime="text/csv"
+    )
+
+    # -------------------- Linki --------------------
     st.divider()
     st.subheader("🔗 Indywidualne linki dla uczestników")
 
-    app_url = "https://tajny-mikolaj.streamlit.app"  # ✅ Twój prawdziwy adres
+    app_url = "https://tajny-mikolaj.streamlit.app"  # ✅ Twój adres
 
     data = []
     for name in assignments.keys():
@@ -168,11 +181,10 @@ if assignments:
         st.markdown(f"🎅 **{name}** → [Otwórz swój prezent]({link})")
         data.append({"Imię": name, "Link": link})
 
-    df = pd.DataFrame(data)
-    csv = df.to_csv(index=False).encode('utf-8')
+    csv_links = pd.DataFrame(data).to_csv(index=False).encode('utf-8')
     st.download_button(
-        label="📥 Pobierz wszystkie linki do CSV",
-        data=csv,
+        label="📥 Pobierz linki do CSV",
+        data=csv_links,
         file_name="tajny_mikolaj_linki.csv",
         mime="text/csv"
     )
