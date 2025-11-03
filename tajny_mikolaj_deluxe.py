@@ -3,6 +3,7 @@ import random
 import time
 import json
 import os
+import io
 
 # ------------------------------
 # 🎅 Konfiguracja aplikacji
@@ -37,32 +38,6 @@ if "admin_logged" not in st.session_state:
     st.session_state.admin_logged = False
 
 # ------------------------------
-# 🎨 Styl świąteczny
-# ------------------------------
-st.markdown("""
-    <style>
-    body {
-        background: linear-gradient(to bottom, #003366 0%, #001122 100%);
-        color: white;
-        text-align: center;
-    }
-    .present {
-        background-color: #b30000;
-        color: white;
-        padding: 20px;
-        border-radius: 15px;
-        box-shadow: 0 0 10px #ff0000;
-        cursor: pointer;
-        transition: 0.3s;
-    }
-    .present:hover {
-        background-color: #ff1a1a;
-        transform: scale(1.05);
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-# ------------------------------
 # 🎅 Losowanie par
 # ------------------------------
 def wylosuj_pary():
@@ -77,7 +52,6 @@ def wylosuj_pary():
         chosen = random.choice(possible)
         assignments[giver] = chosen
         recipients.remove(chosen)
-
     return assignments
 
 # ------------------------------
@@ -120,6 +94,7 @@ def show_admin_panel():
 
     st.success("✅ Zalogowano jako organizator.")
 
+    # 🎲 Losowanie
     if st.button("🎲 Wylosuj pary"):
         pairs = None
         for _ in range(10):
@@ -130,10 +105,20 @@ def show_admin_panel():
             st.session_state.assignments = pairs
             with open(ASSIGN_FILE, "w", encoding="utf-8") as f:
                 json.dump(pairs, f, ensure_ascii=False, indent=2)
-            st.success("✅ Pomyślnie wylosowano pary! Zapisano do assignments.json")
+            st.success("✅ Pomyślnie wylosowano pary! Plik zapisany jako assignments.json")
+
+            # 📥 Przycisk do pobrania pliku
+            json_bytes = json.dumps(pairs, ensure_ascii=False, indent=2).encode('utf-8')
+            st.download_button(
+                label="📥 Pobierz assignments.json",
+                data=json_bytes,
+                file_name="assignments.json",
+                mime="application/json"
+            )
         else:
             st.error("❌ Nie udało się wylosować poprawnych par. Spróbuj ponownie.")
 
+    # ❌ Czyszczenie
     if st.button("❌ Wyczyść losowanie"):
         st.session_state.assignments = {}
         if os.path.exists(ASSIGN_FILE):
@@ -141,11 +126,13 @@ def show_admin_panel():
         st.warning("Wszystkie losowania zostały wyczyszczone.")
         st.rerun()
 
+    # 📜 Podgląd par
     if st.session_state.assignments:
         st.markdown("### 📜 Wylosowane pary:")
         for giver, receiver in st.session_state.assignments.items():
             st.write(f"🎁 **{giver} ➜ {receiver}**")
 
+        # 🔗 Linki
         st.markdown("### 🔗 Indywidualne linki:")
         base_url = "https://tajny-mikolaj.streamlit.app"
         for name in IMIONA:
