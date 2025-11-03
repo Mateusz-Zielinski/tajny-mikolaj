@@ -3,8 +3,13 @@ import random
 import time
 import urllib.parse
 import pandas as pd
+import json
+import os
 
 st.set_page_config(page_title="🎅 Tajny Mikołaj Deluxe", page_icon="🎁", layout="centered")
+
+DATA_FILE = "assignments.json"
+organizer_password = "Mikolaj2025"
 
 # -------------------- CSS --------------------
 st.markdown("""
@@ -58,11 +63,18 @@ for (let i = 0; i < snowflakes; i++) {
 </script>
 """, unsafe_allow_html=True)
 
-# -------------------- Konfiguracja --------------------
-organizer_password = "Mikolaj2025"
+# -------------------- Funkcje pomocnicze --------------------
+def load_assignments():
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return {}
 
-if "assignments" not in st.session_state:
-    st.session_state.assignments = None
+def save_assignments(data):
+    with open(DATA_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+assignments = load_assignments()
 
 query_params = st.experimental_get_query_params()
 user_param = query_params.get("user", [None])[0]
@@ -72,13 +84,13 @@ if user_param:
     st.title("🎁 Twój Prezent Tajnego Mikołaja 🎅")
     name = urllib.parse.unquote(user_param)
 
-    if st.session_state.assignments and name in st.session_state.assignments:
+    if name in assignments:
         if st.button("🎁 Otwórz prezent!"):
             placeholder = st.empty()
             with placeholder.container():
                 st.markdown(
                     f"<div class='reveal'>🎄 {name}, wylosowałeś/aś: "
-                    f"<strong>{st.session_state.assignments[name]}</strong> 🎁</div>",
+                    f"<strong>{assignments[name]}</strong> 🎁</div>",
                     unsafe_allow_html=True
                 )
                 st.info("Wynik zniknie automatycznie po 10 sekundach ⏳")
@@ -122,7 +134,7 @@ else:
         tries = 0
         while not success and tries < 100:
             available = names.copy()
-            assignments = {}
+            assignments_temp = {}
             success = True
             for generator in names:
                 options = [n for n in available if n != generator]
@@ -130,33 +142,32 @@ else:
                     success = False
                     break
                 draw = random.choice(options)
-                assignments[generator] = draw
+                assignments_temp[generator] = draw
                 available.remove(draw)
             tries += 1
 
         if not success:
             st.error("❌ Nie udało się wylosować unikalnych par. Spróbuj ponownie.")
         else:
-            st.session_state.assignments = assignments
-            st.success("🎁 Losowanie zakończone!")
+            assignments = assignments_temp
+            save_assignments(assignments)
+            st.success("🎁 Losowanie zakończone! Dane zapisane.")
             st.balloons()
 
 # -------------------- Linki --------------------
-if st.session_state.assignments:
+if assignments:
     st.divider()
     st.subheader("🔗 Indywidualne linki dla uczestników")
 
-    # 🔧 Wprowadź tutaj adres Twojej aplikacji na Streamlit Cloud
-    app_url = "https://tajny-mikolaj.streamlit.app"
+    app_url = "https://tajny-mikolaj.streamlit.app"  # ✅ Twój prawdziwy adres
 
     data = []
-    for name in st.session_state.assignments.keys():
+    for name in assignments.keys():
         encoded = urllib.parse.quote(name)
         link = f"{app_url}?user={encoded}"
         st.markdown(f"🎅 **{name}** → [Otwórz swój prezent]({link})")
         data.append({"Imię": name, "Link": link})
 
-    # 📤 Przyciski do pobrania CSV
     df = pd.DataFrame(data)
     csv = df.to_csv(index=False).encode('utf-8')
     st.download_button(
