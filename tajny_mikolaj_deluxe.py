@@ -147,7 +147,7 @@ if st.session_state.assignments:
     st.subheader("🔗 Indywidualne linki dla uczestników")
 
     # 🔧 Wprowadź tutaj adres Twojej aplikacji na Streamlit Cloud
-    app_url = "https://twoja-nazwa-aplikacji.streamlit.app"  # ← ZMIEŃ TUTAJ
+    app_url = "https://tajny-mikolaj.streamlit.app"
 
     data = []
     for name in st.session_state.assignments.keys():
